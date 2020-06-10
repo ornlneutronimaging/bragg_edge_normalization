@@ -24,4 +24,11 @@ and before pushing to repository
 $ python before_and_after_github_script.py -a
 ```
 
+## Installation ##
+
+Switch to the virtualenv of the project
+
+```
+$ source py36_env/bin/activate
+```
 
