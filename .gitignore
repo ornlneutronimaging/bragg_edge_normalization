@@ -1,0 +1,14 @@
+converted_notebooks/*.ipynb
+__pycache__/*
+*.pyc
+*~
+.ipynb*
+.coverage
+/cover/*
+.DS_Store*
+/dist/*
+/build/*
+.cache/*
+.idea/workspace.xml
+.idea*
+
