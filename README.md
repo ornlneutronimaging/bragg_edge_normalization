@@ -24,11 +24,18 @@ and before pushing to repository
 $ python before_and_after_github_script.py -a
 ```
 
-## Installation ##
+## Requirements ##
 
-Switch to the virtualenv of the project
+tested with python 3.6
 
-```
-$ source py36_env/bin/activate
-```
+$ pip install plotly
+$ pip install pillow
+$ pip install pyqt=4.11.4
+$ pip install NeuNorm
+$ pip install neutronbraggedge
+$ pip install nbstripout
 
+$ conda install numpy
+$ conda install jupyter 
+$ conda install matplotlib
+$ conda install -c neutrons ipywe

@@ -136,12 +136,30 @@ class BraggEdge:
         select_data.show()
 
     def load_data(self, folder_selected):
-        list_files = glob.glob(os.path.join(folder_selected, '*.fits'))
+        self.o_norm = Normalization()
+        self.load_files(data_type='sample', folder=folder_selected)
+
+        # define time spectra file
+        folder = os.path.dirname(self.o_norm.data['sample']['file_name'][0])
+        spectra_file = glob.glob(os.path.join(folder, '*_Spectra.txt'))
+        if spectra_file:
+            self.spectra_file = spectra_file[0]
+            display(HTML('<span style="font-size: 15px; color:blue"> Spectra File automatically located: ' + \
+                         self.spectra_file + '</span>'))
+
+        else:
+            #ask for spectra file
+            self.select_time_spectra_file()
+
+    def load_files(self, data_type='sample', folder=None):
+
+        self.starting_dir = os.path.dirname(folder)
+        list_files = glob.glob(os.path.join(folder, '*.fits'))
 
         if list_files == []:
-            list_files = glob.glob(os.path.join(folder_selected, '*.tif*'))
+            list_files = glob.glob(os.path.join(folder, '*.tif*'))
 
-        else: #fits
+        else:  # fits
             # keep only files of interest
             list_files = [file for file in list_files if not "_SummedImg.fits" in file]
             list_files = [file for file in list_files if ".fits" in file]
@@ -149,26 +167,39 @@ class BraggEdge:
         # sort list of files
         list_files.sort()
 
-        o_norm = Normalization()
-        o_norm.load(file=list_files, notebook=True)
+        self.o_norm.load(file=list_files, notebook=True, data_type=data_type)
 
-        self.data = o_norm.data['sample']['data']
-        self.list_files = o_norm.data['sample']['file_name']
+        display(HTML('<span style="font-size: 15px; color:blue">' + str(len(list_files)) + \
+                     ' files have been loaded as ' + data_type + '</span>'))
 
-        display(HTML('<span style="font-size: 20px; color:blue">' + str(len(list_files)) + \
-                     ' files have been loaded</span>'))
+    def select_ob_folder(self):
+        select_data = ipywe.fileselector.FileSelectorPanel(instruction='Select OB Folder ...',
+                                                            start_dir=self.starting_dir,
+                                                            next=self.load_ob,
+                                                            type='directory',
+                                                            multiple=False)
+        select_data.show()
 
-        # define time spectra file
-        folder = os.path.dirname(self.list_files[0])
-        spectra_file = glob.glob(os.path.join(folder, '*_Spectra.txt'))
-        if spectra_file:
-            self.spectra_file = spectra_file[0]
-            display(HTML('<span style="font-size: 20px; color:blue"> Spectra File automatically located: ' + \
-                         self.spectra_file + '</span>'))
+    def load_ob(self, folder_selected):
+        self.load_files(data_type='ob', folder=folder_selected)
+        self.check_data_array_sizes()
 
+    def check_data_array_sizes(self):
+        len_ob = len(self.o_norm.data['ob']['file_name'])
+        len_sample = len(self.o_norm.data['sample']['file_name'])
+
+        if len_ob == len_sample:
+            display(HTML('<span style="font-size: 15px; color:green"> Sample and OB have the same size!</span>'))
+            return
+
+        if len_ob < len_sample:
+            self.o_norm.data['sample']['data'] = self.o_norm.data['sample']['data'][0:len_ob]
+            self.o_norm.data['sample']['file_name'] = self.o_norm.data['sample']['file_name'][0:len_ob]
+            display(HTML('<span style="font-size: 15px; color:green"> Truncated Sample array to match OB!</span>'))
         else:
-            #ask for spectra file
-            self.select_time_spectra_file()
+            self.o_norm.data['ob']['data'] = self.o_norm.data['ob']['data'][0:len_sample]
+            self.o_norm.data['ob']['file_name'] = self.o_norm.data['ob']['file_name'][0:len_sample]
+            display(HTML('<span style="font-size: 15px; color:green"> Truncated OB array to match Sample!</span>'))
 
     def load_time_spectra(self):
         _tof_handler = TOF(filename=self.spectra_file)
@@ -202,7 +233,7 @@ class BraggEdge:
         self.time_spectra_ui.show()
 
     def how_many_data_to_use_to_select_sample_roi(self):
-        nbr_images = len(self.data)
+        nbr_images = len(self.o_norm.data['sample']['data'])
         init_value = np.int(nbr_images/10)
         if init_value == 0:
             init_value = 1
@@ -219,14 +250,34 @@ class BraggEdge:
 
     def define_sample_roi(self):
         nbr_data_to_use = np.int(self.number_of_data_to_use_ui.value)
-        nbr_images = len(self.data)
+        _data = self.o_norm.data['sample']['data']
+
+        nbr_images = len(_data)
         list_of_indexes_to_keep = random.sample(list(range(nbr_images)), nbr_data_to_use)
 
         final_array = []
         for _index in list_of_indexes_to_keep:
-            final_array.append(self.data[_index])
+            final_array.append(_data[_index])
         final_image = np.mean(final_array, axis=0)
         self.final_image = final_image
+
+    def normalization(self, list_rois=None):
+        if list_rois is None:
+            self.o_norm.normalization()
+        else:
+            list_o_roi = []
+            for roi in list_rois:
+                _x0 = roi['x0']
+                _y0 = roi['y0']
+                _x1 = roi['x1']
+                _y1 = roi['y1']
+
+                list_o_roi.append(ROI(x0=_x0,
+                                      y0=_y0,
+                                      x1=_x1,
+                                      y1=_y1))
+
+            self.o_norm.normalization(roi=list_o_roi)
 
     def calculate_counts_vs_file_index_of_regions_selected(self, list_roi=[]):
 
