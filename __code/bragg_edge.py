@@ -36,6 +36,7 @@ except ImportError:
 
 from __code.ui_roi_selection  import Ui_MainWindow as UiMainWindow
 from NeuNorm.normalization import Normalization
+from NeuNorm.roi import ROI
 
 
 class BraggEdge:
@@ -206,8 +207,11 @@ class BraggEdge:
         _exp = Experiment(tof=_tof_handler.tof_array,
                           distance_source_detector_m=np.float(self.dSD_ui.value),
                           detector_offset_micros=np.float(self.detector_offset_ui.value))
-        self.lambda_array = _exp.lambda_array * 1e10 # to be in Angstroms
-        self.tof_array = _tof_handler.tof_array
+
+        nbr_sample = len(self.o_norm.data['sample']['file_name'])
+
+        self.lambda_array = _exp.lambda_array[0: nbr_sample] * 1e10 # to be in Angstroms
+        self.tof_array = _tof_handler.tof_array[0: nbr_sample]
 
     def save_time_spectra(self, file):
         self.spectra_file = file
@@ -266,7 +270,8 @@ class BraggEdge:
             self.o_norm.normalization()
         else:
             list_o_roi = []
-            for roi in list_rois:
+            for key in list_rois.keys():
+                roi = list_rois[key]
                 _x0 = roi['x0']
                 _y0 = roi['y0']
                 _x1 = roi['x1']
@@ -277,25 +282,32 @@ class BraggEdge:
                                       x1=_x1,
                                       y1=_y1))
 
-            self.o_norm.normalization(roi=list_o_roi)
+            self.o_norm.normalization(roi=list_o_roi, notebook=True)
 
-    def calculate_counts_vs_file_index_of_regions_selected(self, list_roi=[]):
+    def calculate_counts_vs_file_index_of_regions_selected(self, list_roi=None):
+
+        normalized_data = self.o_norm.get_normalized_data()
+
+
 
         counts_vs_file_index = []
-        for _data in self.data:
+        for _data in normalized_data:
 
-            _array_data = []
+            if len(list_roi) == 0:
+                _array_data = _data
 
-            for _roi in list_roi.keys():
+            else:
+                _array_data = []
+                for _roi in list_roi.keys():
 
-                x0 = np.int(list_roi[_roi]['x0'])
-                y0 = np.int(list_roi[_roi]['y0'])
-                x1 = np.int(list_roi[_roi]['x1'])
-                y1 = np.int(list_roi[_roi]['y1'])
+                    x0 = np.int(list_roi[_roi]['x0'])
+                    y0 = np.int(list_roi[_roi]['y0'])
+                    x1 = np.int(list_roi[_roi]['x1'])
+                    y1 = np.int(list_roi[_roi]['y1'])
 
-                _array_data.append(np.mean(_data[y0:y1, x0:x1]))
+                    _array_data.append(np.nanmean(_data[y0:y1, x0:x1]))
 
-            counts_vs_file_index.append(np.mean(_array_data))
+            counts_vs_file_index.append(np.nanmean(_array_data))
 
         self.counts_vs_file_index = counts_vs_file_index
 
@@ -322,19 +334,20 @@ class BraggEdge:
             mode='markers')
 
         layout = go.Layout(
-            width="100%",
             height=500,
-            title="Sum Counts vs TOF",
+            title="Counts vs TOF (of entire images, or of selected region if any",
             xaxis=dict(
                 title="Lambda (Angstroms)"
             ),
             yaxis=dict(
-                title="Sum Counts"
+                title="Average Counts"
             ),
         )
 
         max_x = 6
-        y_off = 1
+        data = [trace]
+
+        figure = go.Figure(data=data, layout=layout)
 
         for y_index, _material in enumerate(bragg_edges):
             for _index, _value in enumerate(bragg_edges[_material]):
@@ -350,7 +363,7 @@ class BraggEdge:
                                   'color': 'rgb(255, 0, 0)',
                                   'width': 1
                               }}
-                layout.shapes.append(bragg_line)
+                figure.add_shape(bragg_line)
                 y_off = 1 - 0.25 * y_index
 
                 # add labels to plots
@@ -368,12 +381,8 @@ class BraggEdge:
                     arrowhead=3,
                     ax=0,
                     ay=-25)
+                figure.add_annotation(_annot)
 
-                layout.annotations.append(_annot)
-
-        data = [trace]
-
-        figure = go.Figure(data=data, layout=layout)
         iplot(figure)
 
     def select_output_folder(self):
