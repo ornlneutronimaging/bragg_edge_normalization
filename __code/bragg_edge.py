@@ -35,6 +35,7 @@ except ImportError:
     from PyQt5.QtWidgets import QApplication, QMainWindow
 
 from __code.ui_roi_selection  import Ui_MainWindow as UiMainWindow
+from __code.file_folder_browser import FileFolderBrowser
 from NeuNorm.normalization import Normalization
 from NeuNorm.roi import ROI
 
@@ -286,9 +287,8 @@ class BraggEdge:
 
     def calculate_counts_vs_file_index_of_regions_selected(self, list_roi=None):
 
+        self.list_roi = list_roi
         normalized_data = self.o_norm.get_normalized_data()
-
-
 
         counts_vs_file_index = []
         for _data in normalized_data:
@@ -315,8 +315,6 @@ class BraggEdge:
 
         bragg_edges = self.bragg_edges
         hkl = self.hkl
-        lambda_array = self.lambda_array
-        sum_cropped_data = self.final_image
 
         # format hkl labels
         _hkl_formated = {}
@@ -385,9 +383,64 @@ class BraggEdge:
 
         iplot(figure)
 
-    def select_output_folder(self):
-        self.select_folder(message='output',
-                           next_function=self.export_table)
+    def select_output_data_folder(self):
+        o_folder = FileFolderBrowser(working_dir=self.working_dir,
+                                     next=self.export_data)
+        o_folder.select_output_folder(instruction="Select where to create the ascii file...")
+        # self.select_folder(message='Select where to output the data',
+        #                    next_function=self.export_data)
+
+    def make_output_file_name(self, output_folder='', input_folder=''):
+        #FIXME
+
+
+
+
+        return ''
+
+    def export_data(self, output_folder):
+        input_folder = os.path.dirname(self.o_norm.data['sample']['file_name'][0])
+        ob_folder = os.path.dirname(self.o_norm.data['ob']['file_name'][0])
+        output_file_name = self.make_output_file_name(output_folder=output_folder,
+                                                      input_folder=input_folder)
+
+        lambda_array = self.lambda_array
+        counts_vs_file_index = self.counts_vs_file_index
+        tof_array = self.tof_array
+
+        metadata = ["# input folder: {}".format(input_folder)]
+        metadata.append(["# ob folder: {}".format(ob_folder)])
+
+        list_roi = self.list_roi()
+        if len(list_roi) == 0:
+            metadata.append(["# Entire sample selected"])
+        else:
+            for index, key in enumerate(list_roi.keys()):
+                roi = list_roi[key]
+                _x0 = roi['x0']
+                _y0 = roi['y0']
+                _x1 = roi['x1']
+                _y1 = roi['y1']
+                metadata.append(["# ROI {}: x0={}, y0={}, x1={}, y1={}".format(index,
+                                                                               _x0,
+                                                                               _y0,
+                                                                               _x1,
+                                                                               _y1)])
+        metadata.append(["#"])
+        metadata.append(["# tof (micros), lambda (Angstroms), Average counts"])
+
+        data = []
+        for _t, _l, _c in zip(tof_array, lambda_array, counts_vs_file_index):
+            data.append("{}, {}, {}".format(_t, _l, _c))
+
+
+
+    def select_output_table_folder(self):
+        o_folder = FileFolderBrowser(working_dir=self.working_dir,
+                                     next=self.export_table)
+        o_folder.select_output_folder()
+        # self.select_folder(message='output',
+        #                    next_function=self.export_table)
 
     def export_table(self, output_folder):
         material = self.handler.material[0]
