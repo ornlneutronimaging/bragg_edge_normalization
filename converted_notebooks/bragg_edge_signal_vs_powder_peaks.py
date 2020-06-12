@@ -15,9 +15,6 @@
 # + [markdown] run_control={"frozen": false, "read_only": false}
 # <img src='__docs/__all/notebook_rules.png' />
 
-# + run_control={"frozen": false, "read_only": false}
-# %gui qt
-
 # + [markdown] run_control={"frozen": false, "read_only": false}
 # # Select Your IPTS 
 
@@ -31,6 +28,12 @@ custom_style.style()
 
 from plotly.offline import plot, init_notebook_mode, iplot
 init_notebook_mode()
+# -
+
+# ## Prepare UI engine 
+
+# + run_control={"frozen": false, "read_only": false}
+# %gui qt
 
 # + [markdown] run_control={"frozen": false, "read_only": false}
 # # Select Raw Data Input Folder
@@ -40,21 +43,32 @@ init_notebook_mode()
 # + run_control={"frozen": false, "read_only": false}
 o_bragg = BraggEdge(working_dir=system.System.get_working_dir())
 o_bragg.select_working_folder()
+# -
+
+# # Select Open Beam Input Folder 
+
+o_bragg.select_ob_folder()
+
+# # Select ROI of sample 
 
 # + [markdown] run_control={"frozen": false, "read_only": false}
-# ## Select how many random files to use to select sample position
+# ### Select how many random files to use to select sample position
 
 # + run_control={"frozen": false, "read_only": false}
 o_bragg.how_many_data_to_use_to_select_sample_roi()
 
 # + [markdown] run_control={"frozen": false, "read_only": false}
-# ## Select location of sample on integrated image
+# ### Select location of sample on integrated image
 
 # + run_control={"frozen": false, "read_only": false}
 o_bragg.define_sample_roi()
 o_interface = Interface(data=o_bragg.final_image)
 o_interface.show()
 # -
+
+# # Normalize Data 
+
+o_bragg.normalization(list_rois=o_interface.roi_selected)
 
 # # Powder element(s) to use to compare data  
 
@@ -78,5 +92,8 @@ o_bragg.calculate_counts_vs_file_index_of_regions_selected(list_roi=o_interface.
 o_bragg.load_time_spectra()
 o_bragg.plot()
 # -
+# # Export Data 
 
+o_bragg.select_output_data_folder()
 
+o_bragg.export_data()
