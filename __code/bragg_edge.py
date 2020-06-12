@@ -385,18 +385,14 @@ class BraggEdge:
 
     def select_output_data_folder(self):
         o_folder = FileFolderBrowser(working_dir=self.working_dir,
-                                     next=self.export_data)
+                                     next_function=self.export_data)
         o_folder.select_output_folder(instruction="Select where to create the ascii file...")
         # self.select_folder(message='Select where to output the data',
         #                    next_function=self.export_data)
 
     def make_output_file_name(self, output_folder='', input_folder=''):
-        #FIXME
-
-
-
-
-        return ''
+        file_name = os.path.basename(output_folder) + "_counts_vs_lambda_tof.txt"
+        return os.path.join(output_folder, file_name)
 
     def export_data(self, output_folder):
         input_folder = os.path.dirname(self.o_norm.data['sample']['file_name'][0])
@@ -411,7 +407,7 @@ class BraggEdge:
         metadata = ["# input folder: {}".format(input_folder)]
         metadata.append(["# ob folder: {}".format(ob_folder)])
 
-        list_roi = self.list_roi()
+        list_roi = self.list_roi
         if len(list_roi) == 0:
             metadata.append(["# Entire sample selected"])
         else:
@@ -433,7 +429,17 @@ class BraggEdge:
         for _t, _l, _c in zip(tof_array, lambda_array, counts_vs_file_index):
             data.append("{}, {}, {}".format(_t, _l, _c))
 
+        file_handler.make_asci_file(metadata=metadata,
+                                    data=data,
+                                    output_file_name=output_file_name,
+                                    dim='1d')
 
+        if os.path.exists(output_file_name):
+            display(HTML('<span style="font-size: 20px; color:blue">Ascii file ' + output_file_name + ' + has been ' +
+                         'created  </span>'))
+        else:
+            display(HTML('<span style="font-size: 20px; color:red">Error exporting Ascii file ' + output_file_name +
+                         '</span>'))
 
     def select_output_table_folder(self):
         o_folder = FileFolderBrowser(working_dir=self.working_dir,
