@@ -391,8 +391,8 @@ class BraggEdge:
         #                    next_function=self.export_data)
 
     def make_output_file_name(self, output_folder='', input_folder=''):
-        file_name = os.path.basename(output_folder) + "_counts_vs_lambda_tof.txt"
-        return os.path.join(output_folder, file_name)
+        file_name = os.path.basename(input_folder) + "_counts_vs_lambda_tof.txt"
+        return os.path.join(os.path.abspath(output_folder), file_name)
 
     def export_data(self, output_folder):
         input_folder = os.path.dirname(self.o_norm.data['sample']['file_name'][0])
@@ -405,11 +405,11 @@ class BraggEdge:
         tof_array = self.tof_array
 
         metadata = ["# input folder: {}".format(input_folder)]
-        metadata.append(["# ob folder: {}".format(ob_folder)])
+        metadata.append("# ob folder: {}".format(ob_folder))
 
         list_roi = self.list_roi
         if len(list_roi) == 0:
-            metadata.append(["# Entire sample selected"])
+            metadata.append("# Entire sample selected")
         else:
             for index, key in enumerate(list_roi.keys()):
                 roi = list_roi[key]
@@ -417,25 +417,25 @@ class BraggEdge:
                 _y0 = roi['y0']
                 _x1 = roi['x1']
                 _y1 = roi['y1']
-                metadata.append(["# ROI {}: x0={}, y0={}, x1={}, y1={}".format(index,
-                                                                               _x0,
-                                                                               _y0,
-                                                                               _x1,
-                                                                               _y1)])
-        metadata.append(["#"])
-        metadata.append(["# tof (micros), lambda (Angstroms), Average counts"])
+                metadata.append("# ROI {}: x0={}, y0={}, x1={}, y1={}".format(index,
+                                                                              _x0,
+                                                                              _y0,
+                                                                              _x1,
+                                                                              _y1))
+        metadata.append("#")
+        metadata.append("# tof (micros), lambda (Angstroms), Average counts")
 
         data = []
         for _t, _l, _c in zip(tof_array, lambda_array, counts_vs_file_index):
             data.append("{}, {}, {}".format(_t, _l, _c))
 
-        file_handler.make_asci_file(metadata=metadata,
-                                    data=data,
-                                    output_file_name=output_file_name,
-                                    dim='1d')
+        file_handler.make_ascii_file(metadata=metadata,
+                                     data=data,
+                                     output_file_name=output_file_name,
+                                     dim='1d')
 
         if os.path.exists(output_file_name):
-            display(HTML('<span style="font-size: 20px; color:blue">Ascii file ' + output_file_name + ' + has been ' +
+            display(HTML('<span style="font-size: 20px; color:blue">Ascii file ' + output_file_name + ' has been ' +
                          'created  </span>'))
         else:
             display(HTML('<span style="font-size: 20px; color:red">Error exporting Ascii file ' + output_file_name +
